@@ -1,99 +1,97 @@
-import { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useState, useContext, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 import { loginUser } from "../services/api";
+import { Eye, EyeOff } from "lucide-react";
 
 const Login = () => {
-  const { login } = useAuth();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
-    try {
-      const res = await loginUser({ email, password });
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) navigate("/dashboard");
+  }, []);
 
-      if (res.token) {
-        login(res);
-        alert("Login successful");
-      } else {
-        alert(res.message);
+const handleLogin = async (e) => {
+  e.preventDefault();
 
-        // 🔥 NEW UX LOGIC
-        if (res.message === "User not found") {
-          const goToRegister = window.confirm(
-            "User not found. Do you want to create an account?"
-          );
+  const data = await loginUser({ email, password });
 
-          if (goToRegister) {
-            window.location.href = "/register";
-          }
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Something went wrong");
-    }
-  };
+  if (data.token) {
+    // Save token
+    localStorage.setItem("token", data.token);
 
-  return (
-    <div style={styles.container}>
-      <h2>Login</h2>
+    // Save user info
+    localStorage.setItem("user", JSON.stringify(data.user));
 
-      <form onSubmit={handleLogin} style={styles.form}>
-        <input
-          type="email"
-          placeholder="Enter Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-          required
-        />
+    // Save permissions
+    localStorage.setItem(
+      "permissions",
+      JSON.stringify(data.permissions || [])
+    );
 
-        <input
-          type="password"
-          placeholder="Enter Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={styles.input}
-          required
-        />
+    // Save tenantId
+    localStorage.setItem("tenantId", data.user.TenantId);
 
-        <button type="submit" style={styles.button}>
-          Login
-        </button>
-      </form>
+    // Auth context login
+    login(data.token);
 
-      {/* 🔥 BONUS UI */}
-      <p style={{ marginTop: "10px" }}>
-        Don’t have an account? <a href="/register">Create Account</a>
-      </p>
-    </div>
-  );
+    navigate("/dashboard");
+  } else {
+    alert("Invalid email or password");
+  }
 };
 
-const styles = {
-  container: {
-    marginTop: "50px",
-    textAlign: "center",
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    width: "300px",
-    margin: "auto",
-  },
-  input: {
-    margin: "10px 0",
-    padding: "10px",
-  },
-  button: {
-    padding: "10px",
-    background: "#333",
-    color: "#fff",
-    cursor: "pointer",
-  },
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
+      <div className="bg-white shadow-2xl rounded-2xl p-8 w-96">
+        <h2 className="text-2xl font-bold text-center mb-6">
+          Welcome Back
+        </h2>
+
+        <form onSubmit={handleLogin} className="flex flex-col gap-4">
+          <input
+            type="email"
+            placeholder="Email Address"
+            className="border p-2 rounded-md"
+            onChange={(e) => setEmail(e.target.value)}
+          />
+
+          {/* Password with show/hide */}
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              className="border p-2 rounded-md w-full"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div
+              className="absolute right-3 top-2.5 cursor-pointer"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </div>
+          </div>
+
+          <button className="bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
+            Sign In
+          </button>
+        </form>
+
+        <p className="text-center text-sm mt-4">
+          Don't have an account?{" "}
+          <Link to="/register" className="text-blue-600">
+            Create Organization
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export default Login;

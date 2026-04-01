@@ -1,22 +1,51 @@
 const express = require("express");
 const router = express.Router();
 
-const userController = require("../controllers/userController");
-const authMiddleware = require("../middleware/authMiddleware");
-const { checkPermission } = require("../middleware/rbacMiddleware");
+const verifyToken = require("../middleware/authMiddleware");
+const checkPermission = require("../middleware/rbacMiddleware");
+const tenantMiddleware = require("../middleware/tenantMiddleware");
 
+const {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser
+} = require("../controllers/userController");
+
+// Get Users
 router.get(
-  "/users",
-  authMiddleware,
+  "/",
+  verifyToken,
+  tenantMiddleware,
   checkPermission("View Users"),
-  userController.getUsers
+  getUsers 
 );
 
+// Create User
 router.post(
-  "/users",
-  authMiddleware,
+  "/",
+  verifyToken,
+  tenantMiddleware,
   checkPermission("Create User"),
-  userController.createUser
+  createUser
+);
+
+// Update User
+router.put(
+  "/:id",
+  verifyToken,
+  tenantMiddleware,
+  checkPermission("Edit User"),
+  updateUser
+);
+
+// Delete User
+router.delete(
+  "/:id",
+  verifyToken,
+  tenantMiddleware,
+  checkPermission("Delete User"),
+  deleteUser
 );
 
 module.exports = router;

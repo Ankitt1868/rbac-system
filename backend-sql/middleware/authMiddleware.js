@@ -1,17 +1,53 @@
 const jwt = require("jsonwebtoken");
+const { sql } = require("../config/db");
 
-module.exports = function (req, res, next) {
-  const token = req.header("Authorization");
-
-  if (!token) {
-    return res.status(401).json({ message: "No token, access denied" });
-  }
-
+const verifyToken = async (req, res, next) => {
   try {
-    const decoded = jwt.verify(token, "secretkey");
-    req.user = decoded;
+    const authHeader = req.headers["authorization"];
+
+    if (!authHeader) {
+      return res.status(401).json({ message: "Token required" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const result = await sql.query`
+      SELECT 
+        u.UserId,
+        u.Name,
+        u.Email,
+        u.TenantId,
+        r.RoleName
+      FROM Users u
+      JOIN UserRoles ur ON u.UserId = ur.UserId
+      JOIN Roles r ON ur.RoleId = r.RoleId
+      WHERE u.UserId = ${decoded.userId}
+    `;
+
+    if (result.recordset.length === 0) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    const user = result.recordset[0];
+
+    req.user = user;
+
+    // Tenant logic
+    if (req.headers["tenant-id"]) {
+      req.tenantId = parseInt(req.headers["tenant-id"]);
+    } else {
+      req.tenantId = user.TenantId;
+    }
+
+    console.log("Logged User:", req.user);
+    console.log("Current Tenant:", req.tenantId);
+
     next();
   } catch (err) {
-    res.status(400).json({ message: "Invalid token" });
+    console.log("Auth Middleware Error:", err);
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
+
+module.exports = verifyToken;

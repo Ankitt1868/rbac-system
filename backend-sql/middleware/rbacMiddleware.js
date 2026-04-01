@@ -1,28 +1,40 @@
 const { sql } = require("../config/db");
 
-exports.checkPermission = (permissionName) => {
+const checkPermission = (permissionName) => {
   return async (req, res, next) => {
     try {
-      const userId = req.user.userId;
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userId = req.user.UserId;
 
       const result = await sql.query`
-        SELECT p.PermissionName
-        FROM Users u
-        JOIN UserRoles ur ON u.UserId = ur.UserId
-        JOIN Roles r ON ur.RoleId = r.RoleId
-        JOIN RolePermissions rp ON r.RoleId = rp.RoleId
+        SELECT DISTINCT p.PermissionName
+        FROM UserRoles ur
+        JOIN RolePermissions rp ON ur.RoleId = rp.RoleId
         JOIN Permissions p ON rp.PermissionId = p.PermissionId
-        WHERE u.UserId = ${userId}
-        AND p.PermissionName = ${permissionName}
+        WHERE ur.UserId = ${userId}
       `;
 
-      if (result.recordset.length === 0) {
-        return res.status(403).json({ message: "Access Denied" });
+      const permissions = result.recordset.map(
+        (p) => p.PermissionName
+      );
+
+      console.log("User Permissions:", permissions);
+
+      if (!permissions.includes(permissionName)) {
+        return res.status(403).json({
+          message: "Access Denied: No Permission",
+        });
       }
 
       next();
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    } catch (err) {
+      console.log("RBAC Error:", err);
+      res.status(500).json({ message: "Server error" });
     }
   };
 };
+
+module.exports = checkPermission;

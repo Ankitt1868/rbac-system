@@ -1,29 +1,43 @@
-const sql = require("mssql");
+// const sql = require("mssql");
 
-const config = {
-  user: "rbacuser",
-  password: "123456",
-  server: "localhost",
-  database: "RBAC_DB",
-  options: {
-    instanceName: "SQLEXPRESS",
-    encrypt: false,
-    trustServerCertificate: true
-  }
-};
+// const config = {
+//   user: "rbacuser",
+//   password: "123456",
+//   server: "localhost",
+//   database: "RBAC_DB",
+//   options: {
+//     instanceName: "SQLEXPRESS",
+//     encrypt: false,
+//     trustServerCertificate: true
+//   }
+// };
 
-let pool;
+// let pool;
 
-const connectDB = async () => {
-  try {
-    pool = await sql.connect(config);
-    console.log("SQL Server Connected");
-  } catch (err) {
-    console.log("DB Connection Error:", err);
-  }
-};
+// const connectDB = async () => {
+//   try {
+//     pool = await sql.connect(config);
+//     console.log("SQL Server Connected");
+//   } catch (err) {
+//     console.log("DB Connection Error:", err);
+//   }
+// };
 
-module.exports = {
-  sql,
-  connectDB
-};
+// module.exports = {
+//   sql,
+//   connectDB
+// };
+
+
+
+
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
+module.exports = pool;

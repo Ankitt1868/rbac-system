@@ -2,6 +2,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { connectDB } = require("./config/db");
+const pool = require("./config/db");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -31,6 +32,12 @@ app.use("/api", dashboardRoutes);
 // Test Route
 app.get("/", (req, res) => {
   res.send("SQL RBAC Backend Running 🚀");
+});
+
+
+app.get("/test-db", async (req, res) => {
+  const result = await pool.query("SELECT * FROM Permissions");
+  res.json(result.rows);
 });
 
 const PORT = process.env.PORT || 5000;

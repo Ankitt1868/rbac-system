@@ -206,31 +206,23 @@ const login = async (req, res) => {
 
   try {
     // User + Role + Tenant
-    const result = await pool.query(
-      `SELECT
-        u.UserId,
-        u.Name,
-        u.Email,
-        u.Password,
-        u.TenantId,
-        r.RoleId,
-        r.RoleName,
-        t.TenantName
-      FROM Users u
-      JOIN UserRoles ur ON u.UserId = ur.UserId
-      JOIN Roles r ON ur.RoleId = r.RoleId
-      LEFT JOIN Tenants t ON u.TenantId = t.TenantId
-      WHERE u.Email = $1
-      ORDER BY 
-        CASE 
-          WHEN r.RoleName = 'SuperAdmin' THEN 1
-          WHEN r.RoleName = 'Admin' THEN 2
-          WHEN r.RoleName = 'User' THEN 3
-          ELSE 4
-        END
-      LIMIT 1`,
-      [email]
-    );
+    const result = await pool.query(`
+SELECT 
+  u.userid,
+  u.name,
+  u.email,
+  u.password,
+  u.tenantid,
+  r.roleid,
+  r.rolename,
+  t.tenantname
+FROM users u
+JOIN userroles ur ON u.userid = ur.userid
+JOIN roles r ON ur.roleid = r.roleid
+LEFT JOIN tenants t ON u.tenantid = t.tenantid
+WHERE u.email = $1
+LIMIT 1
+`, [email]);
 
     if (result.rows.length === 0) {
       return res.status(400).json({ message: "User not found" });
@@ -243,13 +235,12 @@ const login = async (req, res) => {
     }
 
     // Get Permissions
-    const permissionResult = await pool.query(
-      `SELECT p.PermissionName
-       FROM RolePermissions rp
-       JOIN Permissions p ON rp.PermissionId = p.PermissionId
-       WHERE rp.RoleId = $1`,
-      [user.roleid]
-    );
+    const permissionResult = await pool.query(`
+SELECT p.permissionname
+FROM rolepermissions rp
+JOIN permissions p ON rp.permissionid = p.permissionid
+WHERE rp.roleid = $1
+`, [user.roleid]);
 
     const permissions = permissionResult.rows.map(
       (p) => p.permissionname
